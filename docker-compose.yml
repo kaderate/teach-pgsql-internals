@@ -1,0 +1,65 @@
+# Le labo : un primaire et sa réplica en streaming.
+# Aucun port n'est publié : tout passe par `docker compose exec`, donc rien n'écoute sur ta machine.
+name: slonik-folies
+
+services:
+  primary:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: slonik
+      POSTGRES_PASSWORD: slonik
+      POSTGRES_DB: labo
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - wal_level=replica
+      - -c
+      - max_wal_senders=5
+      - -c
+      - max_replication_slots=5
+      - -c
+      - max_connections=30
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - track_io_timing=on
+      - -c
+      - log_lock_waits=on
+      - -c
+      - deadlock_timeout=1s
+      - -c
+      - log_checkpoints=on
+      - -c
+      - log_autovacuum_min_duration=0
+    volumes:
+      - primary-data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slonik -d labo"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  replica:
+    image: postgres:17
+    user: postgres
+    environment:
+      PGPASSWORD: replicator
+    entrypoint: ["sh", "/replica-entry.sh"]
+    depends_on:
+      primary:
+        condition: service_healthy
+    volumes:
+      - replica-data:/var/lib/postgresql/data
+      - ./docker/replica-entry.sh:/replica-entry.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slonik -d labo"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+volumes:
+  primary-data:
+  replica-data:

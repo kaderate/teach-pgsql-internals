@@ -1,0 +1,13 @@
+{
+  "name": "slonik-folies",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Apprendre les entrailles de PostgreSQL : simulation d'abord, vrai Postgres ensuite.",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js",
+    "test:labs": "node test/labs.run.js"
+  },
+  "engines": { "node": ">=22" }
+}
